@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import {
@@ -48,7 +48,7 @@ const cards = [
   "Identity Card",
 ];
 
-export default function RegisterForm() {
+export default function EditData() {
   const [cardName, setCardName] = React.useState([]);
   // const router = useDemoRouter("/register");
   const navigate = useNavigate();
@@ -288,6 +288,7 @@ const handleChangeInput = (event, index) => {
       icon: <ViewCompactIcon />,
       onClick: () => navigate("/view"),
     }
+    
   ];
 
   const demoTheme = createTheme({

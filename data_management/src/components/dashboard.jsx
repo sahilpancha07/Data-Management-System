@@ -39,13 +39,7 @@ export default function Dashboard() {
       title: "View",
       icon: <ViewCompactIcon />,
       onClick: () => navigate("/view"),
-    },
-    {
-      segment: "data",
-      title: "Data",
-      icon: <DataUsageIcon />,
-      onClick: () => navigate("/data"),
-    },
+    }
   ];
 
   useEffect(() => {
