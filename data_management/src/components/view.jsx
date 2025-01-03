@@ -32,12 +32,12 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import { AppProvider } from "@toolpad/core/AppProvider";
 import PermIdentityIcon from "@mui/icons-material/PermIdentity";
 import ViewCompactIcon from "@mui/icons-material/ViewCompact";
-import DataUsageIcon from "@mui/icons-material/DataUsage";
 import * as Yup from "yup";
 import { useFormik } from "formik";
-// import { useDemoRouter } from "@toolpad/core/internal";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function ViewData() {
   // const router = useDemoRouter("/view");
@@ -48,6 +48,27 @@ export default function ViewData() {
   const [openView, setOpenView] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState({});
   const [cardName, setCardName] = React.useState([]);
+  const [searchQuery, setSearchQuery] = useState(""); // State for search input
+  const [filteredData, setFilteredData] = React.useState([]); // State for filtered results
+  const itemsPerPage = 5; // Number of items per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const [paginatedData, setPaginatedData] = useState([]);
+
+  // Calculate total pages
+  // const totalPages = Math.ceil(data.length / itemsPerPage);
+
+  useEffect(() => {
+    // Calculate start and end indices for the current page
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+
+    // Update the data to display
+    setPaginatedData(data.slice(startIndex, endIndex));
+  }, [currentPage, data]);
+
+  // const handlePageChange = (pageNumber) => {
+  //   setCurrentPage(pageNumber);
+  // };
 
   const ITEM_HEIGHT = 48;
   const ITEM_PADDING_TOP = 8;
@@ -82,6 +103,8 @@ export default function ViewData() {
     console.log("Selected Row for view:", row);
   };
   const handleClose = () => setOpen(false);
+  const handleCloseView = () => setOpenView(false);
+  const handleCloseEdit = () => setOpenEdit(false);
 
   const navigate = useNavigate();
 
@@ -103,7 +126,7 @@ export default function ViewData() {
       title: "View",
       icon: <ViewCompactIcon />,
       onClick: () => navigate("/view"),
-    }
+    },
   ];
 
   const demoTheme = createTheme({
@@ -159,9 +182,6 @@ export default function ViewData() {
   };
 
   const validationSchema = Yup.object({
-    No: Yup.string()
-      .required("No is required")
-      .matches(/^\d+$/, "No must be a number"),
     zone: Yup.string().required("Zone is required"),
     main_member_contact: Yup.string()
       .required("Contact is required")
@@ -183,7 +203,6 @@ export default function ViewData() {
           age: Yup.number().required("Required"),
           relation: Yup.string().required("Required"),
           xender: Yup.string().required("Required"),
-          // Physical_handicap_disease: Yup.string().optional("Required"),
           contact: Yup.string().required("Required"),
           education: Yup.string().required("Required"),
           marritial_status: Yup.string().required("Required"),
@@ -196,7 +215,6 @@ export default function ViewData() {
 
   const formik = useFormik({
     initialValues: {
-      No: "",
       zone: "",
       main_member_contact: "",
       main_member_family: "",
@@ -220,17 +238,37 @@ export default function ViewData() {
       ],
     },
     validationSchema: validationSchema,
-    // onSubmit: async (values) => {
-    //   try {
-    //     const response = await axios.post('http://localhost:5000/register', values);
-    //     console.log('Form Submitted Successfully:', response.data);
-    //   } catch (error) {
-    //     console.error('Error Submitting Form:', error);
-    //   }
-    // },
-    // onSubmit: (values) => {
-    //   console.log(values)
-    // }
+    onSubmit: async (values) => {
+      try {
+        const formData = {
+          zone: formik.values.zone,
+          main_member_contact: formik.values.main_member_contact,
+          main_member_family: formik.values.main_member_family,
+          annual_income: formik.values.annual_income,
+          address: formik.values.address,
+          economic_position: formik.values.economic_position,
+          house: formik.values.house,
+          card: formik.values.card,
+          addMember: formik.values.addMember,
+        };
+        const response = await axios.put(
+          `http://localhost:5000/edit-family/${selectedRow.no}`,
+          formData,
+          
+        );
+        console.log("Form Submitted Successfully:", response.data);
+        if (response.data.status) {
+          setOpenEdit(false); // Show success message
+          toast.success("Data Editted Successfully", {position: "bottom-left",autoClose: 5000 });
+        } else {
+          alert("Update failed: " + response.data.message);
+          toast.error("Error !!", {position: "bottom-left",autoClose: 5000 });
+        }
+      } catch (error) {
+        console.error("API Error:", error);
+        alert("Failed to update data. Please try again.");
+      }
+    },
   });
 
   const handleChange = (event) => {
@@ -238,10 +276,7 @@ export default function ViewData() {
       target: { value },
     } = event;
 
-    setCardName(
-      // On autofill we get a stringified value.
-      typeof value === "string" ? value.split(",") : value
-    );
+    setCardName(typeof value === "string" ? value.split(",") : value);
     formik.setFieldValue(
       "card",
       typeof value === "string" ? value.split(",") : value
@@ -288,51 +323,51 @@ export default function ViewData() {
     p: 4,
   };
 
-  // const handleDelete = (row) => {
-  //   setSelectedRow(row); // Store the selected row
-  //   setOpen(true); // Open the modal
-  //   console.log("Selected Row for Delete:", row);
-  // };
-
   const handleEdit = (row) => {
-    // navigate("/edit");
-    setOpenEdit(true);
-    setSelectedRow(row);
+    setOpenEdit(true); // Open the modal
+    setSelectedRow(row); // Store the selected row
+
+    // Map `addMember` values if they exist in the row
+    const mappedMembers = row.add_member.map((member) => ({
+      name: member.name,
+      age: member.age,
+      relation: member.relation,
+      xender: member.xender,
+      contact: member.contact || "",
+      education: member.education || "",
+      marritial_status: member.marritial_status,
+      job_business: member.job_business || "",
+      blood_grp: member.blood_grp || "",
+    }));
+
     formik.setValues({
-      No: selectedRow.no,
-      zone: selectedRow.zone,
-      main_member_contact: selectedRow.main_member_contact,
-      main_member_family: selectedRow.main_member_family,
-      address: selectedRow.address,
-      economic_position: selectedRow.economic_position,
-      house: selectedRow.house,
-      annual_income: selectedRow.annual_income,
-      card: [selectedRow.card],
-      addMember: [
-        {
-          name: "",
-          age: "",
-          relation: "",
-          xender: "",
-          contact: "",
-          education: "",
-          marritial_status: "",
-          job_business: "",
-          blood_grp: "",
-        },
-      ],
+      zone: row.zone || "",
+      main_member_contact: row.main_member_contact || "",
+      main_member_family: row.main_member_family || "",
+      address: row.address || "",
+      economic_position: row.economic_position || "",
+      house: row.house || "",
+      annual_income: row.annual_income || "",
+      card: row.card || [],
+      addMember: mappedMembers,
     });
+
     console.log("Selected Row for Edit:", row);
+    console.log(mappedMembers);
+    console.log("row.add_member:", row.add_member);
   };
 
   const handleDeleteConfirm = () => {
     console.log("eeeeeeeeeee");
     axios
-      .delete(`http://localhost:5000/delete-family/${selectedRow.no}`)
+      .delete(`http://localhost:5000/delete-family/${selectedRow.id}`)
       .then((response) => {
         console.log(response.data.message);
         setOpen(false);
         setData((prevData) =>
+          prevData.filter((item) => item.No !== selectedRow.No)
+        );
+        setFilteredData((prevData) =>
           prevData.filter((item) => item.No !== selectedRow.No)
         );
       })
@@ -344,6 +379,7 @@ export default function ViewData() {
       .get("http://localhost:5000/view")
       .then((response) => {
         setData(response.data.data);
+        setFilteredData(response.data.data);
         setLoading(false);
         console.log(response.data.data);
       })
@@ -358,6 +394,7 @@ export default function ViewData() {
       .get("http://localhost:5000/view")
       .then((response) => {
         setData(response.data.data);
+        setFilteredData(response.data.data);
         setLoading(false);
         console.log(response.data.data);
       })
@@ -366,6 +403,31 @@ export default function ViewData() {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredData(data);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const results = data.filter(
+        (item) =>
+          item.main_member_family.toLowerCase().includes(query) ||
+          item.zone.toLowerCase().includes(query) ||
+          item.main_member_contact.includes(query) ||
+          item.address.toLowerCase().includes(query) ||
+          item.economic_position.toLowerCase().includes(query) ||
+          item.house.toLowerCase().includes(query) ||
+          item.card.some((card) => card.toLowerCase().includes(query)) ||
+          item.add_member.some((member) =>
+            Object.values(member).some(
+              (field) =>
+                typeof field === "string" && field.toLowerCase().includes(query)
+            )
+          )
+      );
+      setFilteredData(results);
+    }
+  }, [searchQuery, data]);
 
   const labels = {
     no: "Serial Number",
@@ -378,23 +440,8 @@ export default function ViewData() {
     house: "House",
     card: "Cards",
     add_member: "Family Members",
-    age:"Age"
-
+    age: "Age",
   };
-
-  // useEffect(() => {
-  //   axios
-  //     .get("http://localhost:5000/view")
-  //     .then((response) => {
-  //       setData(response.data.data);
-  //       setLoading(false);
-  //       console.log(response.data.data);
-  //     })
-  //     .catch((error) => {
-  //       console.error("Error fetching data:", error);
-  //       setLoading(false);
-  //     });
-  // }, [data]);
 
   if (loading) {
     return <Typography>Loading...</Typography>;
@@ -405,7 +452,7 @@ export default function ViewData() {
       navigation={NAVIGATION}
       // router={router}
       branding={{
-        title: "Data Of Members",
+        title: "Sunni Sorathiya Muslim Ghachi Samaj",
       }}
       theme={demoTheme}
     >
@@ -413,6 +460,13 @@ export default function ViewData() {
         <Grid2 mt={3}>
           <Card mt={2}>
             <CardContent sx={{ margin: 0 }}>
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ padding: "10px", marginBottom: "20px", width: "25%" }}
+              />
               <TableContainer>
                 <Table sx={{ minWidth: 650 }} aria-label="simple table">
                   <TableHead>
@@ -424,50 +478,83 @@ export default function ViewData() {
                         <b>Name</b>
                       </TableCell>
                       <TableCell align="center">
+                        <b>Contact</b>
+                      </TableCell>
+                      <TableCell align="center">
                         <b>Operations</b>
                       </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {data.map((e) => {
-                      return (
-                        <>
-                          <TableRow key={e.no}>
-                            <TableCell align="center">{e.no}</TableCell>
-                            <TableCell align="center">
-                              {e.main_member_family}
-                            </TableCell>
-                            <TableCell align="center">
-                              <Button
-                                sx={{ marginRight: 1 }}
-                                variant="contained"
-                                onClick={() => handleOpenView(e)}
-                              >
-                                View
-                              </Button>
+                    {filteredData.length > 0 ? (
+                      filteredData.map((e, index) => {
+                        return (
+                          <>
+                            <TableRow key={index}>
+                              <TableCell align="center">{e.no}</TableCell>
+                              <TableCell align="center">
+                                {e.main_member_family}
+                              </TableCell>
+                              <TableCell align="center">
+                                {e.main_member_contact}
+                              </TableCell>
+                              <TableCell align="center">
+                                <Button
+                                  sx={{ marginRight: 1 }}
+                                  variant="contained"
+                                  onClick={() => handleOpenView(e)}
+                                >
+                                  View
+                                </Button>
 
-                              <Button
-                                variant="contained"
-                                onClick={() => handleEdit(e)}
-                              >
-                                Edit
-                              </Button>
+                                <Button
+                                  variant="contained"
+                                  onClick={() => handleEdit(e)}
+                                >
+                                  Edit
+                                </Button>
 
-                              <Button
-                                sx={{ marginLeft: 1 }}
-                                variant="contained"
-                                color="error"
-                                onClick={() => handleOpen(e)}
-                              >
-                                Delete
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        </>
-                      );
-                    })}
+                                <Button
+                                  sx={{ marginLeft: 1 }}
+                                  variant="contained"
+                                  color="error"
+                                  onClick={() => handleOpen(e)}
+                                >
+                                  Delete
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          </>
+                        );
+                      })
+                    ) : (
+                      <p> No data Found.........</p>
+                    )}
                   </TableBody>
                 </Table>
+
+                {/* Pagination Controls */}
+                {/* <div style={{ marginTop: "10px" }}>
+                  {Array.from({ length: totalPages }, (_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handlePageChange(index + 1)}
+                      disabled={currentPage === index + 1}
+                      style={{
+                        margin: "0 5px",
+                        padding: "5px 10px",
+                        background:
+                          currentPage === index + 1 ? "#ccc" : "#007BFF",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </div> */}
               </TableContainer>
             </CardContent>
           </Card>
@@ -525,7 +612,7 @@ export default function ViewData() {
           aria-labelledby="transition-modal-title"
           aria-describedby="transition-modal-description"
           open={openView}
-          onClose={handleClose}
+          onClose={handleCloseView}
           closeAfterTransition
           slots={{ backdrop: Backdrop }}
           slotProps={{
@@ -557,92 +644,6 @@ export default function ViewData() {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {/* {Object.entries(selectedRow).map(() => {
-                          return (
-                            <>
-                              <TableRow>
-                                <TableCell align="center">No</TableCell>
-                                <TableCell align="center">
-                                  {selectedRow.no}
-                                </TableCell>
-                              </TableRow>
-
-                              <TableRow>
-                                <TableCell align="center">Zone</TableCell>
-                                <TableCell align="center">
-                                  {selectedRow.zone}
-                                </TableCell>
-                              </TableRow>
-
-                              <TableRow>
-                                <TableCell align="center">Contact</TableCell>
-                                <TableCell align="center">
-                                  {selectedRow.main_member_contact}
-                                </TableCell>
-                              </TableRow>
-
-                              <TableRow>
-                                <TableCell align="center">
-                                  Main Member of Family
-                                </TableCell>
-                                <TableCell align="center">
-                                  {selectedRow.main_member_family}
-                                </TableCell>
-                              </TableRow>
-
-                              <TableRow>
-                                <TableCell align="center">
-                                  Annual Income
-                                </TableCell>
-                                <TableCell align="center">
-                                  {selectedRow.annual_income}
-                                </TableCell>
-                              </TableRow>
-
-                              <TableRow>
-                                <TableCell align="center">Address</TableCell>
-                                <TableCell align="center">Bhavnagar</TableCell>
-                              </TableRow>
-
-                              <TableRow>
-                                <TableCell align="center">
-                                  Economic Position
-                                </TableCell>
-                                <TableCell align="center">Good</TableCell>
-                              </TableRow>
-
-                              <TableRow>
-                                <TableCell align="center">House</TableCell>
-                                <TableCell align="center">Own</TableCell>
-                              </TableRow>
-
-                              <TableRow>
-                                <TableCell align="center">Cards</TableCell>
-                                <TableCell align="center">
-                                  <List>
-                                    <ListItem>
-                                      <ListItemText>ABCD</ListItemText>
-                                    </ListItem>
-                                    <ListItem>
-                                      <ListItemText>ABCD</ListItemText>
-                                    </ListItem>
-                                    <ListItem>
-                                      <ListItemText>ABCD</ListItemText>
-                                    </ListItem>
-                                  </List>
-                                </TableCell>
-                              </TableRow>
-                            </>
-                          );
-                        })} */}
-                        {/* {Object.entries(selectedRow).map(([key, value]) => (
-                          <TableRow key={key}>
-                            <TableCell align="center">{key}</TableCell>
-                            <TableCell align="center">
-                              {Array.isArray(value) ? value.join(", ") : value}
-                            </TableCell>
-                          </TableRow>
-                        ))} */}
                         {Object.entries(selectedRow).map(([key, value]) => (
                           <TableRow key={key}>
                             <TableCell align="center">
@@ -691,7 +692,7 @@ export default function ViewData() {
           aria-labelledby="transition-modal-title"
           aria-describedby="transition-modal-description"
           open={openEdit}
-          onClose={handleClose}
+          onClose={handleCloseEdit}
           closeAfterTransition
           slots={{ backdrop: Backdrop }}
           slotProps={{
@@ -709,21 +710,10 @@ export default function ViewData() {
               >
                 Edit User Data
               </Typography>
+              <ToastContainer />
 
               <form onSubmit={formik.handleSubmit}>
                 <Stack my={2} spacing={3} direction="row">
-                  <TextField
-                    id="outlined-basic"
-                    type="number"
-                    label="No."
-                    variant="outlined"
-                    onChange={formik.handleChange}
-                    value={formik.values.No}
-                    error={formik.touched.No && Boolean(formik.errors.No)}
-                    helperText={formik.touched.No && formik.errors.No}
-                    name="No"
-                  />
-
                   <TextField
                     id="outlined-basic"
                     type="text"
@@ -919,7 +909,7 @@ export default function ViewData() {
                               type="text"
                               label="Family Member Name"
                               name={`addMember.${index}.name`}
-                              value={formik.values.addMember.name}
+                              value={formik.values.addMember?.[index]?.name}
                               onChange={(event) => {
                                 formik.handleChange(event);
                                 handleChangeInput(event, index);
@@ -941,7 +931,7 @@ export default function ViewData() {
                               type="number"
                               label="Age"
                               name={`addMember.${index}.age`}
-                              value={formik.values.addMember.age}
+                              value={formik.values.addMember?.[index]?.age}
                               onChange={(event) => {
                                 formik.handleChange(event);
                                 handleChangeInput(event, index);
@@ -963,7 +953,7 @@ export default function ViewData() {
                               type="text"
                               label="Relation"
                               name={`addMember.${index}.relation`}
-                              value={formik.values.addMember.relation}
+                              value={formik.values.addMember?.[index]?.relation}
                               onChange={(event) => {
                                 formik.handleChange(event);
                                 handleChangeInput(event, index);
@@ -985,7 +975,7 @@ export default function ViewData() {
                               type="number"
                               label="Contact"
                               name={`addMember.${index}.contact`}
-                              value={formik.values.addMember.contact}
+                              value={formik.values.addMember?.[index]?.contact}
                               onChange={(event) => {
                                 formik.handleChange(event);
                                 handleChangeInput(event, index);
@@ -1006,7 +996,9 @@ export default function ViewData() {
                               type="text"
                               label="Job / Business"
                               name={`addMember.${index}.job_business`}
-                              value={formik.values.addMember.job_business}
+                              value={
+                                formik.values.addMember?.[index]?.job_business
+                              }
                               onChange={(event) => {
                                 formik.handleChange(event);
                                 handleChangeInput(event, index);
@@ -1030,7 +1022,9 @@ export default function ViewData() {
                               type="text"
                               label="Blood Group"
                               name={`addMember.${index}.blood_grp`}
-                              value={formik.values.addMember.blood_grp}
+                              value={
+                                formik.values.addMember?.[index]?.blood_grp
+                              }
                               onChange={(event) => {
                                 formik.handleChange(event);
                                 handleChangeInput(event, index);
@@ -1052,7 +1046,9 @@ export default function ViewData() {
                               type="text"
                               label="Education"
                               name={`addMember.${index}.education`}
-                              value={formik.values.addMember.education}
+                              value={
+                                formik.values.addMember?.[index]?.education
+                              }
                               onChange={(event) => {
                                 formik.handleChange(event);
                                 handleChangeInput(event, index);
@@ -1156,14 +1152,16 @@ export default function ViewData() {
                               +
                             </Button>
 
-                            <Button
-                              variant="outlined"
-                              color="error"
-                              onClick={() => handleRemoveMember(index)}
-                              disabled={formik.values.addMember.length === 1}
-                            >
-                              -
-                            </Button>
+                            {formik.values.addMember.length > 1 && (
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                onClick={() => handleRemoveMember(index)}
+                                disabled={formik.values.addMember.length === 1}
+                              >
+                                -
+                              </Button>
+                            )}
                           </Grid2>
                         </CardContent>
                       </Card>
@@ -1187,7 +1185,7 @@ export default function ViewData() {
                       sx={{ marginLeft: 1 }}
                       variant="contained"
                       color="info"
-                      // onClick={handleDeleteConfirm}
+                      type="submit"
                     >
                       Edit
                     </Button>

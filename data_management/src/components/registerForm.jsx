@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import {
@@ -23,8 +23,9 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import { AppProvider } from "@toolpad/core/AppProvider";
 import PermIdentityIcon from "@mui/icons-material/PermIdentity";
 import ViewCompactIcon from "@mui/icons-material/ViewCompact";
-import DataUsageIcon from "@mui/icons-material/DataUsage";
 import { useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 
 const ITEM_HEIGHT = 48;
@@ -38,6 +39,7 @@ const MenuProps = {
   },
 };
 
+
 const cards = [
   "Amrut Card",
   "Vatsal Card",
@@ -50,7 +52,6 @@ const cards = [
 
 export default function RegisterForm() {
   const [cardName, setCardName] = React.useState([]);
-  // const router = useDemoRouter("/register");
   const navigate = useNavigate();
 
   const validationSchema = Yup.object({
@@ -89,74 +90,6 @@ export default function RegisterForm() {
       .required("At least one member is required"),
   });
 
-  // const [addMember, setAddMember] = useState([
-  //   {
-  //     name: "",
-  //     age: "",
-  //     relation: "",
-  //     xender: "",
-  //     contact: "",
-  //     education: "",
-  //     marritial_status: "",
-  //     job_business: "",
-  //     // Physical_handicap_disease: "",
-  //     blood_grp: "",
-  //   },
-  // ]);
-
-  // const handleAddFields = () => {
-  //   setAddMember([
-  //     ...addMember,
-  //     {
-  //       name: "",
-  //       age: "",
-  //       relation: "",
-  //       xender: "",
-  //       contact: "",
-  //       education: "",
-  //       marritial_status: "",
-  //       job_business: "",
-  //       // Physical_handicap_disease: "",
-  //       blood_grp: "",
-  //     },
-  //   ]);
-  // };
-
-  // const handleRemoveFields = (index) => {
-  //   const updatedMembers = addMember.filter((_, i) => i !== index);
-  //   setAddMember(updatedMembers);
-  // };
-
-  // const handleChangeInput = (event, index) => {
-  //   const { name, value } = event.target;
-  //   const updatedMembers = [...addMember];
-  //   updatedMembers[index][name] = value; // Update the specific field
-  //   setAddMember(updatedMembers);
-  // };
-
-//   const handleChangeInput = (event, index) => {
-//   const { name, value } = event.target;
-
-//   // Extract field name without array notation (e.g., `addMember.0.name` -> `name`)
-//   const fieldName = name.split(".").slice(-1)[0];
-
-//   // Update the specific field in addMember array
-//   const updatedMembers = [...formik.values.addMember];
-//   updatedMembers[index][fieldName] = value;
-
-//   // Set the updated array in Formik
-//   formik.setFieldValue("addMember", updatedMembers);
-// };
-
-// const handleChangeInput = (event, index) => {
-//   const { name, value } = event.target;
-//   const fieldName = name.split(".").slice(-1)[0]; // Extract field name, e.g., 'name', 'age'
-
-//   const updatedMembers = [...formik.values.addMember];
-//   updatedMembers[index][fieldName] = value; // Update only the specific field in the correct index
-
-//   formik.setFieldValue("addMember", updatedMembers); // Update the entire addMember array in Formik state
-// };
 
 const handleChangeInput = (event, index) => {
   const { name, value } = event.target;
@@ -217,7 +150,6 @@ const handleChangeInput = (event, index) => {
           education: "",
           marritial_status: "",
           job_business: "",
-          // Physical_handicap_disease: "",
           blood_grp: "",
         },
       ],
@@ -227,31 +159,16 @@ const handleChangeInput = (event, index) => {
       try {
         const response = await axios.post('http://localhost:5000/register', values);
         console.log('Form Submitted Successfully:', response.data);
+        toast.success("Data Submitted Successfully", {position: "bottom-left",autoClose: 5000 });
+        
       } catch (error) {
         console.error('Error Submitting Form:', error);
+        toast.error("Error !!", { position: "bottom-left",autoClose: 5000 });
       }
-    },
-    // onSubmit: (values) => {
-    //   console.log(values)
-    // }
+    }
   
   });
 
-//   async (values) => {
-//     try {
-//       const response = await axios.post(
-//         "http://localhost:5000/register",
-//         values
-//       );
-//       console.log("Form submitted successfully:", response.data);
-//       alert("Form submitted successfully");
-//     } catch (error) {
-//       console.error("Error submitting form:", error);
-//       alert("Error submitting form. Please try again.");
-//     }
-//   },
-
-// });
 
   const handleChange = (event) => {
     const {
@@ -259,7 +176,6 @@ const handleChangeInput = (event, index) => {
     } = event;
 
     setCardName(
-      // On autofill we get a stringified value.
       typeof value === "string" ? value.split(",") : value
     );
     formik.setFieldValue(
@@ -267,7 +183,6 @@ const handleChangeInput = (event, index) => {
       typeof value === "string" ? value.split(",") : value
     );
   };
-  // const demoWindow = window !== undefined ? window() : undefined;
 
   const NAVIGATION = [
     {
@@ -307,16 +222,18 @@ const handleChangeInput = (event, index) => {
   });
 
   return (
+    
     <AppProvider
       navigation={NAVIGATION}
       branding={{
-        title: "Data Of Members",
+        title: "Sunni Sorathiya Muslim Ghachi Samaj",
       }}
       theme={demoTheme}
     >
       <DashboardLayout>
         <Grid2 mt={3}>
           <Card mt={2}>
+          <ToastContainer />
             <CardContent sx={{ margin: 1 }}>
               <Typography gutterBottom variant="h4" component="div">
                 Add Family Details
@@ -773,14 +690,14 @@ const handleChangeInput = (event, index) => {
                               +
                             </Button>
 
-                            <Button
+                            {formik.values.addMember.length > 1 && <Button
                               variant="outlined"
                               color="error"
                               onClick={() => handleRemoveMember(index)}
-                              disabled={formik.values.addMember.length === 1}
+                              // disabled={formik.values.addMember.length === 1}
                             >
                               -
-                            </Button>
+                            </Button>}
                           </Grid2>
                         </CardContent>
                       </Card>
@@ -789,6 +706,7 @@ const handleChangeInput = (event, index) => {
                 </Grid2>
                 <Grid2>
                   <Button type="submit" variant="contained" fullWidth>
+
                     Submit
                   </Button>
                 </Grid2>

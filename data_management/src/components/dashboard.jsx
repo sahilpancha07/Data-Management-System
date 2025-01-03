@@ -11,7 +11,6 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import { AppProvider } from "@toolpad/core/AppProvider";
 import PermIdentityIcon from "@mui/icons-material/PermIdentity";
 import ViewCompactIcon from "@mui/icons-material/ViewCompact";
-import DataUsageIcon from "@mui/icons-material/DataUsage";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -80,14 +79,18 @@ export default function Dashboard() {
     return <Typography color="error">{error}</Typography>;
   }
 
+  const handleClick = () => {
+    navigate("/view")
+  }
+
   return (
     <AppProvider
       navigation={NAVIGATION}
-      branding={{ title: "Data Of Members" }}
+      branding={{ title: "Sunni Sorathiya Muslim Ghachi Samaj" }}
       theme={demoTheme}
     >
       <DashboardLayout>
-        <Card sx={{ maxWidth: 345, margin: 3 }}>
+        <Card sx={{ maxWidth: 345, margin: 3 }} onClick={handleClick}>
           <CardActionArea>
             <CardContent>
               <Typography gutterBottom variant="h5" component="div">
